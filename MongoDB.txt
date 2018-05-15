@@ -1,0 +1,121 @@
+0.
+mongoimport --db sampleDB users.json
+2018-05-14T15:59:44.262+0300    no collection specified
+2018-05-14T15:59:44.278+0300    using filename 'users' as collection
+2018-05-14T15:59:44.373+0300    connected to: localhost
+2018-05-14T15:59:44.737+0300    imported 844 documents
+
+> use sampleDB
+switched to db sampleDB
+
+> show collections
+users
+
+> db.users.count()
+844
+
+1.
+> db.users.aggregate(
+	[
+		{$group:{"_id":null,"avgAge":{$avg:"$age"}}}
+	]
+)
+
+{ "_id" : null, "avgAge" : 30.38862559241706 }
+
+2.
+> db.users.aggregate(
+	[
+		{"$match":{"address":/.*Alaska.*/}},
+		{"$group":{"_id":null,"avgAge":{$avg:"$age"}}}
+	]
+)
+
+{ "_id" : null, "avgAge" : 31.5 }
+
+3.
+db.users.findOne({
+	$and:[
+		{"friends.name":{$regex:".*Dennis.*"}},
+		{"index":{$gt:62}}
+		]
+})
+> db.users.findOne({$and:[{"friends.name":{$regex:".*Dennis.*"}},{"index":{$gt:62}}]},{guid:0,isActive:0,balance:0,picture:0,eyeColor:0,gender:0,company:0,email:0,phone:0,about:0,registered:0,latitude:0,longitude:0,tags:0,greeting:0})
+{
+        "_id" : ObjectId("5adf3c1544abaca147cdd47c"),
+        "index" : 306,
+        "age" : 21,
+        "name" : "Esperanza Blevins",
+        "address" : "659 Oceanic Avenue, Collins, Utah, 6277",
+        "friends" : [
+                {
+                        "id" : 0,
+                        "name" : "Charles Dennis"
+                },
+                {
+                        "id" : 1,
+                        "name" : "Arlene Walton"
+                },
+                {
+                        "id" : 2,
+                        "name" : "Trisha Long"
+                }
+        ],
+        "favoriteFruit" : "banana"
+}
+
+4.
+> db.users.aggregate(
+	[
+	{"$match":{$and:[{"address":/.*Utah.*/},
+	{"isActive":true}]}},
+	{"$group":{"_id":"$favoriteFruit","count":{"$sum":1}}}
+	]
+)
+
+{ "_id" : "strawberry", "count" : 1 }
+{ "_id" : "apple", "count" : 4 }
+{ "_id" : "banana", "count" : 2 }
+
+5.
+> db.users.aggregate(
+	[
+		{"$match":{"favoriteFruit":"apple"}},
+		{"$sort":{registered:-1}},
+		{"$group":{"_id":"$favoriteFruit",first:{"$min":"$registered"},id:{"$last":"$_id"}}}
+	]
+)
+
+{ "_id" : "apple", "first" : "2014-01-02T10:16:56 -02:00", "id" : ObjectId("5adf3c1544abaca147cdd568") }
+
+6.
+> db.users.update({_id:ObjectId("5adf3c1544abaca147cdd568")},{$set:{features:"first apple eater"}})
+
+WriteResult({ "nMatched" : 1, "nUpserted" : 0, "nModified" : 1 })
+
+> db.users.find(
+	{_id:ObjectId("5adf3c1544abaca147cdd568")},
+	{eyeColor:0,gender:0,latitude:0,longitude:0,greeting:0,guid:0,balance:0,picture:0,email:0,friends:0,about:0,address:0,phone:0,tags:0, isActive:0, age:0, company:0}
+	).pretty()
+
+{
+        "_id" : ObjectId("5adf3c1544abaca147cdd568"),
+        "index" : 541,
+        "name" : "Magdalena Compton",
+        "registered" : "2014-01-02T10:16:56 -02:00",
+        "favoriteFruit" : "apple",
+        "features" : "first apple eater"
+}
+
+7.
+> db.users.aggregate(
+	[
+		{"$match":{"favoriteFruit":"strawberry"}},
+		{"$group":{"_id":"$favoriteFruit","count":{"$sum":1}}}
+	]
+)
+	
+{ "_id" : "strawberry", "count" : 253 }
+
+> db.users.remove({"favoriteFruit":"strawberry"})
+WriteResult({ "nRemoved" : 253 })
